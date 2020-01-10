@@ -224,7 +224,7 @@ void UKF::SigmaPointPrediction(MatrixXd* Xsig_out) {
 		MatrixXd secondTerm = MatrixXd(n_x,1);
 
 		//Check yaw_vel to avoid division by zero
-		if(yaw_vel ==0)
+		if(fabs(yaw_vel) <= 0.001)
 		{
 			firstTerm << v*cos(yaw)*delta_t,
 						 v*sin(yaw)*delta_t,
