@@ -30,11 +30,15 @@ int main() {
 	/**
 	 * Testing augmented Sigma points generation
 	 */
-	MatrixXd Xsig_aug = MatrixXd(7, 15);
-	ukf.AugmentedSigmaPoints(&Xsig_aug);
+	//MatrixXd Xsig_aug = MatrixXd(7, 15);
+	//ukf.AugmentedSigmaPoints(&Xsig_aug);
 
 
-
+	/**
+	 * Testing augmented sigma points prediction
+	 */
+	MatrixXd Xsig_pred = MatrixXd(15, 5);
+	ukf.SigmaPointPrediction(&Xsig_pred);
 
 
 	return 0;
