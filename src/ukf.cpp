@@ -279,23 +279,23 @@ Xsig_pred =
 
 
 
-void UKF::calcMeanVariance(MatrixXd & Xsig_pred_in, VectorXd & weights_in, VectorXd & xmean_out, MatrixXd &Mvariance_out)
+void UKF::calcMeanVariance(MatrixXd & Xsig_in, VectorXd & weights_in, VectorXd & xmean_out, MatrixXd &Mvariance_out, bool doYaw2piNormalization)
 {
 
-	int nbr_of_sigmapoints = Xsig_pred_in.cols();
-	int state_dimension = Xsig_pred_in.rows();
+	int nbr_of_sigmapoints = Xsig_in.cols();
+	int state_dimension = Xsig_in.rows();
 
 	MatrixXd weigths_mat = MatrixXd(nbr_of_sigmapoints, nbr_of_sigmapoints);
 	weigths_mat = weights_in.replicate(1, nbr_of_sigmapoints);
 
-	MatrixXd Xsig_pred_weigthed = Xsig_pred_in*weigths_mat;
+	MatrixXd Xsig_pred_weigthed = Xsig_in*weigths_mat;
 
 	/*Calculating predicted mean*/
 	xmean_out = Xsig_pred_weigthed.rowwise().sum();
 	xmean_out = xmean_out/nbr_of_sigmapoints;
 
 	MatrixXd x_mat = xmean_out.replicate(1, nbr_of_sigmapoints);
-	MatrixXd Xsig_pred_in_centered = Xsig_pred_in - x_mat;
+	MatrixXd Xsig_in_centered = Xsig_in - x_mat;
 
 	/*
 	 * Normalizing from 0 to 2*pi
@@ -303,12 +303,15 @@ void UKF::calcMeanVariance(MatrixXd & Xsig_pred_in, VectorXd & weights_in, Vecto
 	 * width = 2*pi
 	 * start = 0
 	 * */
-	Xsig_pred_in_centered.block(3, 0, 1, nbr_of_sigmapoints) = Xsig_pred_in_centered.block(3, 0, 1, nbr_of_sigmapoints).array() + \
-			( -1*Xsig_pred_in_centered.block(3, 0, 1, nbr_of_sigmapoints)/(2*M_PI) ).array().round()*(2*M_PI);
+	if(doYaw2piNormalization)
+	{
+		Xsig_in_centered.block(3, 0, 1, nbr_of_sigmapoints) = Xsig_in_centered.block(3, 0, 1, nbr_of_sigmapoints).array() + \
+				( -1*Xsig_in_centered.block(3, 0, 1, nbr_of_sigmapoints)/(2*M_PI) ).array().round()*(2*M_PI);
+	}
 
 	/*Calculating predicted covariance*/
-	MatrixXd Xsig_pred_in_centered_weighted = (weigths_mat.leftCols(state_dimension).transpose().array() )*Xsig_pred_in_centered.array();
-	Mvariance_out = Xsig_pred_in_centered_weighted*( Xsig_pred_in_centered.transpose());
+	MatrixXd Xsig_in_centered_weighted = (weigths_mat.leftCols(state_dimension).transpose().array() )*Xsig_in_centered.array();
+	Mvariance_out = Xsig_in_centered_weighted*( Xsig_in_centered.transpose());
 
 }
 
@@ -359,7 +362,7 @@ void UKF::PredictMeanAndCovariance(VectorXd* x_out, MatrixXd* P_out) {
 	// create covariance matrix for prediction
 	MatrixXd P = MatrixXd(n_x, n_x);
 
-	calcMeanVariance(Xsig_pred, weights, x, P);
+	calcMeanVariance(Xsig_pred, weights, x, P, true);
 
 	// print result
 	std::cout << "Predicted state" << std::endl;
@@ -405,6 +408,26 @@ P =
  */
 
 
+void UKF::TransformToMeasureSpace(MatrixXd & Xsig_in, MatrixXd & Xsig_meaSpace_out)
+{
+	int nbr_of_sigmapoints = Xsig_in.cols();
+
+	for(int j=0; j< nbr_of_sigmapoints; j++)
+	{
+		double px = Xsig_in(0, j);
+		double py = Xsig_in(1, j);
+		double v = Xsig_in(2, j);
+		double yaw = Xsig_in(3, j);
+		//double yaw_vel = Xsig_in(4, j);
+
+		Xsig_meaSpace_out(0, j) = sqrt(px*px + py*py);
+		Xsig_meaSpace_out(1, j) = atan(py/px);
+		Xsig_meaSpace_out(2, j) = ( px*cos(yaw)*v + py*sin(yaw)*v )/( Xsig_meaSpace_out(0, j) );
+
+	}
+}
+
+
 
 /**
  * Predict tadar measurements
@@ -443,6 +466,13 @@ void UKF::PredictRadarMeasurement(VectorXd* z_out, MatrixXd* S_out) {
   // radar measurement noise standard deviation radius change in m/s
   double std_radrd = 0.1;
 
+  /*Creating measure noise matrix*/
+  MatrixXd R = MatrixXd(n_z, n_z);
+  R << std_radr*std_radr, 0, 0,
+	   0, std_radphi*std_radphi, 0,
+	   0, 0, std_radrd*std_radrd;
+
+
   // create example matrix with predicted sigma points
   MatrixXd Xsig_pred = MatrixXd(n_x, 2 * n_aug + 1);
   Xsig_pred <<
@@ -454,26 +484,18 @@ void UKF::PredictRadarMeasurement(VectorXd* z_out, MatrixXd* S_out) {
 
   // create matrix for sigma points in measurement space
   MatrixXd Zsig = MatrixXd(n_z, 2 * n_aug + 1);
+  // transform sigma points into measurement space
+  TransformToMeasureSpace(Xsig_pred, Zsig);
 
   // mean predicted measurement
   VectorXd z_pred = VectorXd(n_z);
-
   // measurement covariance matrix S
   MatrixXd S = MatrixXd(n_z,n_z);
+  // calculate mean predicted and covariance measurement
+  calcMeanVariance(Zsig, weights, z_pred, S, false);
 
-  /**
-   * Student part begin
-   */
-
-  // transform sigma points into measurement space
-
-  // calculate mean predicted measurement
-
-  // calculate innovation covariance matrix S
-
-  /**
-   * Student part end
-   */
+  /*Adding measure noise*/
+  S = S + R;
 
   // print result
   std::cout << "z_pred: " << std::endl << z_pred << std::endl;
