@@ -42,7 +42,7 @@ public:
 
 
 private:
-	void calcMeanVariance(Eigen::MatrixXd & Xsig_in, Eigen::VectorXd & weights_in, Eigen::VectorXd & xmean_out, Eigen::MatrixXd &Mvariance_out, bool doYaw2piNormalization);
+	void calcMeanVariance(Eigen::MatrixXd & Xsig_in, Eigen::VectorXd & weights_in, Eigen::VectorXd & xmean_out, Eigen::MatrixXd &Mvariance_out, int rowToNormalize2pi);
 	void TransformToMeasureSpace(Eigen::MatrixXd & Xsig_in, Eigen::MatrixXd & Xsig_meaSpace_out);
 
 };

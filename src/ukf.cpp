@@ -279,7 +279,7 @@ Xsig_pred =
 
 
 
-void UKF::calcMeanVariance(MatrixXd & Xsig_in, VectorXd & weights_in, VectorXd & xmean_out, MatrixXd &Mvariance_out, bool doYaw2piNormalization)
+void UKF::calcMeanVariance(MatrixXd & Xsig_in, VectorXd & weights_in, VectorXd & xmean_out, MatrixXd &Mvariance_out, int rowToNormalize2pi)
 {
 
 	int nbr_of_sigmapoints = Xsig_in.cols();
@@ -303,11 +303,8 @@ void UKF::calcMeanVariance(MatrixXd & Xsig_in, VectorXd & weights_in, VectorXd &
 	 * width = 2*pi
 	 * start = 0
 	 * */
-	if(doYaw2piNormalization)
-	{
-		Xsig_in_centered.block(3, 0, 1, nbr_of_sigmapoints) = Xsig_in_centered.block(3, 0, 1, nbr_of_sigmapoints).array() + \
-				( -1*Xsig_in_centered.block(3, 0, 1, nbr_of_sigmapoints)/(2*M_PI) ).array().round()*(2*M_PI);
-	}
+	Xsig_in_centered.block(rowToNormalize2pi, 0, 1, nbr_of_sigmapoints) = Xsig_in_centered.block(rowToNormalize2pi, 0, 1, nbr_of_sigmapoints).array() + \
+				( -1*Xsig_in_centered.block(rowToNormalize2pi, 0, 1, nbr_of_sigmapoints)/(2*M_PI) ).array().round()*(2*M_PI);
 
 	/*Calculating predicted covariance*/
 	MatrixXd Xsig_in_centered_weighted = (weigths_mat.leftCols(state_dimension).transpose().array() )*Xsig_in_centered.array();
@@ -362,7 +359,7 @@ void UKF::PredictMeanAndCovariance(VectorXd* x_out, MatrixXd* P_out) {
 	// create covariance matrix for prediction
 	MatrixXd P = MatrixXd(n_x, n_x);
 
-	calcMeanVariance(Xsig_pred, weights, x, P, true);
+	calcMeanVariance(Xsig_pred, weights, x, P, 3);
 
 	// print result
 	std::cout << "Predicted state" << std::endl;
@@ -492,7 +489,7 @@ void UKF::PredictRadarMeasurement(VectorXd* z_out, MatrixXd* S_out) {
   // measurement covariance matrix S
   MatrixXd S = MatrixXd(n_z,n_z);
   // calculate mean predicted and covariance measurement
-  calcMeanVariance(Zsig, weights, z_pred, S, false);
+  calcMeanVariance(Zsig, weights, z_pred, S, 1);
 
   /*Adding measure noise*/
   S = S + R;
