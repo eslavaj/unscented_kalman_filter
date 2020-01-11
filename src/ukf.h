@@ -44,7 +44,9 @@ public:
 private:
 	void calcMeanVariance(Eigen::MatrixXd & Xsig_in, Eigen::VectorXd & weights_in, Eigen::VectorXd & xmean_out, Eigen::MatrixXd &Mvariance_out, int rowToNormalize2pi);
 	void TransformToMeasureSpace(Eigen::MatrixXd & Xsig_in, Eigen::MatrixXd & Xsig_meaSpace_out);
-
+	void calcWeightedMeanAndCenter(Eigen::MatrixXd & Xsig_in, Eigen::VectorXd & weights_in, Eigen::VectorXd & xmean_out, Eigen::MatrixXd & Xsig_centered_out);
+	void normalizeRow(Eigen::MatrixXd & blockToNormalize, int rowToNormalize, double start, double width);
+	void calcWeightedCorrelation(Eigen::MatrixXd & M1_in, Eigen::MatrixXd & M2_in, Eigen::VectorXd & weights_in, Eigen::MatrixXd & Mvariance_out);
 };
 
 
