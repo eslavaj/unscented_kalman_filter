@@ -12,6 +12,7 @@
 
 
 using Eigen::MatrixXd;
+using Eigen::VectorXd;
 
 int main() {
 
@@ -37,8 +38,16 @@ int main() {
 	/**
 	 * Testing augmented sigma points prediction
 	 */
-	MatrixXd Xsig_pred = MatrixXd(15, 5);
-	ukf.SigmaPointPrediction(&Xsig_pred);
+	//MatrixXd Xsig_pred = MatrixXd(15, 5);
+	//ukf.SigmaPointPrediction(&Xsig_pred);
+
+
+	/**
+	 * Testing the prediction of mean and variance
+	 */
+	VectorXd x_pred = VectorXd(5);
+	MatrixXd P_pred = MatrixXd(5, 5);
+	ukf.PredictMeanAndCovariance(&x_pred, &P_pred);
 
 
 	return 0;
