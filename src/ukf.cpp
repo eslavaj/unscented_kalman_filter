@@ -644,7 +644,21 @@ void UKF::UpdateState(VectorXd* x_out, MatrixXd* P_out) {
   // create matrix for cross correlation Tc
   MatrixXd Tc = MatrixXd(n_x, n_z);
 
+  // calculate cross correlation matrix
+  VectorXd xsig_mean = VectorXd(Xsig_pred.rows());
+  MatrixXd Xsig_pred_centered = MatrixXd(Xsig_pred.rows(), Xsig_pred.cols());
+  VectorXd zsig_mean = VectorXd(Zsig.rows());
+  MatrixXd Zsig_centered = MatrixXd(Zsig.rows(), Zsig.cols());
+  calcWeightedMeanAndCenter(Xsig_pred, weights, xsig_mean, Xsig_pred_centered);
+  calcWeightedMeanAndCenter(Zsig, weights, zsig_mean, Zsig_centered);
+  calcWeightedCorrelation(Xsig_pred_centered, Zsig_centered, weights, Tc);
 
+  // calculate Kalman gain K;
+  MatrixXd K = Tc * (S.inverse());
+
+  // update state mean and covariance matrix
+  x = x + K*(z - z_pred);
+  P = P - K*S*(K.transpose());
 
   // print result
   std::cout << "Updated state x: " << std::endl << x << std::endl;
